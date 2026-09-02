@@ -1,9 +1,10 @@
 import express, {type Request, type Response} from "express";
-import router from "./routes/routes.js";
+import router from "./routes/users.js";
 import dotenv from "dotenv"
 import { connectDB } from "./config/database.js";
 import mongoose from "mongoose";
 import { errorHandler } from "./middleware/errorHandler.js";
+import postRouter from "./routes/post.js";
 
 dotenv.config()
 
@@ -30,6 +31,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 })
 
 app.use(router)
+app.use(postRouter)
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 5000

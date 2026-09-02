@@ -1,6 +1,6 @@
 import { User } from "../models/User.js"
 
-export async function listUsers(page: string, limit: string) {
+export async function listUsers(page: any, limit: any) {
 
     const pageNum = Math.max(typeof page === 'string' ? parseInt(page, 10) : page || 1, 1)
     const limitNum = Math.min(100, Math.max(typeof limit === 'string' ? parseInt(limit, 10) : limit || 10, 1))
@@ -48,8 +48,8 @@ export async function followUser(userId: string, targetUserId: string) {
 }
 
 export async function unFollowUser(userId: string, targetUserId: string) {
-    const follower = await User.findByIdAndUpdate(userId, {new: true}, {$pull: {following: targetUserId}})
-    const targetUser = await User.findByIdAndUpdate(targetUserId, {new: true}, {$pull: {followers: userId}})
+    const follower = await User.findByIdAndUpdate(userId, {$pull: {following: targetUserId}}, {new: true})
+    const targetUser = await User.findByIdAndUpdate(targetUserId, {$pull: {followers: userId}}, {new: true})
     return {follower, targetUser}
 }
 
