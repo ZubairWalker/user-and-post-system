@@ -1,7 +1,5 @@
 import express, {type NextFunction, type Request, type Response} from "express";
 import * as postService from '../services/postService.js'
-import { error } from "node:console";
-import query  from "express";
 const postRouter = express.Router()
 
 // Welcome part of the postRouter
@@ -16,7 +14,14 @@ postRouter.get('/api/posts', async(req: Request, res: Response, next: NextFuncti
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
 
-        const post = await postService.ListPosts(req.query, page, limit)
+        const filters: Record<string, boolean> = {}
+        if (req.query.isPublished !== undefined) {
+            if (req.query.isPublished !== 'true' && req.query.isPublished !== 'false') {
+                return res.status(400).json({message: 'isPublished must be true or false'})
+            }
+            filters.isPublished = req.query.isPublished === 'true'
+        }
+        const post = await postService.ListPosts(filters, page, limit)
         if(!post) {
             throw new Error('Not found')
         }
@@ -48,7 +53,8 @@ postRouter.post('/api/posts', async(req: Request, res: Response, next: NextFunct
 // API => Get Trend Posts. 
 postRouter.get('/api/posts/trending', async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const limit = Number(req.body.limit) || 10
+        const parsedLimit = Number(req.query.limit)
+        const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 10
 
         const post = await postService.getTrendingPosts(limit);
         if(!post) {
@@ -66,7 +72,7 @@ postRouter.get('/api/posts/:id', async(req: Request, res: Response, next: NextFu
     try {
         const post = await postService.getPostbyId(req.params.id as string)
         if(!post) {
-            throw new Error(`post with ${req.params.id} doesn't exist`)
+            return res.status(404).json({message: 'Post not found'})
         }
         return res.status(200).json({
             post: post,
@@ -81,7 +87,6 @@ postRouter.get('/api/posts/:id', async(req: Request, res: Response, next: NextFu
 postRouter.patch('/api/posts/:id', async(req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = (req.body.userId || req.headers['x-user-id']) as string;
-
         const post = await postService.updatePost(req.params.id as string, userId, req.body)
         if(!post) {
         return res.status(404).json({ error: 'Post not found' });

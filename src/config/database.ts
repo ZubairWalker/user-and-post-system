@@ -21,7 +21,7 @@ process.on('SIGINT', async () => {
 export async function connectDB() {
     const MONGODB_URL = process.env.MONGODB_URL
     if(!MONGODB_URL) {
-        throw new Error(`FATAL: MONGO_DB_URL is missing in environment variables`)
+        throw new Error(`FATAL: MONGODB_URL is missing in environment variables`)
     }
     try {
         await mongoose.connect(MONGODB_URL);
@@ -35,7 +35,7 @@ export async function connectDB() {
 export async function disConnect() {
     try {
         await mongoose.disconnect()
-        if(mongoose.connection.readyState !== 0) {
+        if(mongoose.connection.readyState === 0) {
             console.log('MongoDB disconnected from the Atlas MongoDB')
         }
     } catch (error) {

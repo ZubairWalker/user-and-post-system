@@ -1,9 +1,10 @@
 import { User } from "../models/User.js"
 
 export async function listUsers(page: any, limit: any) {
-
-    const pageNum = Math.max(typeof page === 'string' ? parseInt(page, 10) : page || 1, 1)
-    const limitNum = Math.min(100, Math.max(typeof limit === 'string' ? parseInt(limit, 10) : limit || 10, 1))
+    const parsedPage = Number(page)
+    const parsedLimit = Number(limit)
+    const pageNum = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
+    const limitNum = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 10
     const skip = (pageNum - 1) * limitNum   
 
     const [users, total]:any = await Promise.all([
@@ -34,29 +35,51 @@ export async function createUser(data: any) {
 }
 
 export async function updateUser(id: string, data: any) {
-    const user = await User.findByIdAndUpdate(id, data, {new: true, runValidators: true})
+    if (data.password !== undefined) {
+        const passwordError = new Error('Password changes are not supported by this endpoint') as Error & {statusCode: number}
+        passwordError.statusCode = 400
+        throw passwordError
+    }
+    const allowedFields = ['username', 'email', 'firstName', 'lastName']
+    const updates = Object.fromEntries(Object.entries(data).filter(([field]) => allowedFields.includes(field)))
+    const user = await User.findById(id)
     if(!user) {
         return null
     }
+    Object.assign(user, updates)
+    await user.save()
     return user
 }
 
 export async function followUser(userId: string, targetUserId: string) {
+    if (!userId || !targetUserId) throw new Error('Both user IDs are required')
+    if (userId === targetUserId) throw new Error('A user cannot follow themselves')
+    const [followerExists, targetExists] = await Promise.all([
+        User.exists({_id: userId}),
+        User.exists({_id: targetUserId}),
+    ])
+    if (!followerExists || !targetExists) {
+        const error = new Error('User not found') as Error & {statusCode: number}
+        error.statusCode = 404
+        throw error
+    }
     const follower = await User.findByIdAndUpdate(userId, {$addToSet: {following: targetUserId}})
-    const targetUser = await User.findByIdAndUpdate(targetUserId, {$addToSet: {followers: userId}})
+    const targetUser = await User.findByIdAndUpdate(targetUserId, {$addToSet: {followers: userId}}, {new: true})
     return {follower, targetUser}
 }
 
 export async function unFollowUser(userId: string, targetUserId: string) {
+    if (!userId || !targetUserId) throw new Error('Both user IDs are required')
     const follower = await User.findByIdAndUpdate(userId, {$pull: {following: targetUserId}}, {new: true})
     const targetUser = await User.findByIdAndUpdate(targetUserId, {$pull: {followers: userId}}, {new: true})
+    if (!follower || !targetUser) {
+        const error = new Error('User not found') as Error & {statusCode: number}
+        error.statusCode = 404
+        throw error
+    }
     return {follower, targetUser}
 }
 
-export async function searchUsers(query: any) {
-    const user = await User.find({$text: {$search: query}})
-    if(!user) {
-        return null
-    }
-    return user
+export async function searchUsers(query: string) {
+    return User.find({$text: {$search: query}})
 }
