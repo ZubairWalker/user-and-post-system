@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 import { Schema } from "mongoose";
 
+function createExcerpt(content: string) {
+  const trimmed = content.trim();
+  return trimmed.length > 150 ? `${trimmed.slice(0, 150)}...` : trimmed;
+}
+
 export const commentSchema = new Schema({
   content: {
     type: String,
@@ -65,7 +70,7 @@ export const postSchema = new Schema(
 );
 
 postSchema.virtual("likesCount").get(function () {
-  return this.likes?.length || 0
+  return this.likes?.length || 0;
 });
 
 postSchema.virtual("commentsCount").get(function () {
@@ -77,44 +82,50 @@ postSchema.virtual("readingTime").get(function () {
   return Math.ceil(words / 200);
 });
 
-postSchema.pre("save", async function () {
-  if (!this.excerpt && this.content) {
-    this.excerpt = this.content.substring(0, 150) + "...";
-  }
-});
+// Instance Methods
+postSchema.methods.addComment = async function (
+  authorId: any,
+  content: string,
+) {
+  this.comments.push({ author: authorId, content });
+  return await this.save();
+};
 
-postSchema.pre("save", async function () {
+postSchema.methods.toggleLike = async function (userId: any) {
+  const index = this.likes.findIndex(
+    (id: any) => id.toString() === userId.toString(),
+  );
+  if (index === -1) {
+    this.likes.push(userId);
+  } else {
+    this.likes.splice(index, 1);
+  }
+
+  return await this.save();
+};
+
+postSchema.statics.findByAuthor = function (authorId: any) {
+  return this.find({ author: authorId }).sort({ createdAt: -1 });
+};
+
+postSchema.statics.findPopular = function (limit: number = 10) {
+  return this.find({ isPublished: true }).sort({ views: -1 }).limit(limit);
+};
+
+// Added generateExcerpt instance method
+postSchema.methods.generateExcerpt = function () {
+  return createExcerpt(this.content);
+};
+
+postSchema.pre("save", function () {
+  if (this.isModified("content")) {
+    this.excerpt = createExcerpt(this.content);
+  }
+
   if (this.isPublished && !this.publishedAt) {
     this.publishedAt = new Date();
   }
 });
-
-// Instance Methods 
-postSchema.methods.addComment = async function(authorId: any, content: string) {
-    this.comments.push({author: authorId, content});
-    return await this.save();
-}
-
-postSchema.methods.toggleLike = async function(userId: any) {
-    const index = this.likes.findIndex((id: any) => id.toString() === userId.toString());
-    if(index === -1) {
-        this.likes.push(userId);
-    } else {
-        this.likes.splice(index, 1);
-    }
-
-    return await this.save()
-}
-
-postSchema.statics.findByAuthor = function(authorId: any) {
-    return this.find({author: authorId}).sort({createdAt: -1});
-}
-
-postSchema.statics.findPopular = function(limit: number = 10) {
-    return this.find({isPublished: true})
-                .sort({views: -1})
-                .limit(limit)
-}
 
 // text Index
 postSchema.index({ title: "text", content: "text" });

@@ -14,7 +14,8 @@ export async function ListPosts(filters: Record<string, any>, page: number, limi
         data: posts,
         total, 
         page: pageNum,
-        totalPage: Math.ceil(total / limitNum)
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
     }
 }
 
@@ -83,11 +84,18 @@ export async function toggleLike(postId: string, userId: string) {
     if (!userId) throw new Error('A user ID is required to like a post')
     const post = await Post.findById(postId);
     if (!post) return null
-    const result  = await (post as any).toggleLike(userId)
-    return {post, result}
+    return await (post as any).toggleLike(userId)
 }
 
 export async function getTrendingPosts(limit: number) {
     const post = await (Post as any).findPopular(limit)
     return post
+}
+
+export async function getPostsByAuthor(authorId: string) {
+    return await (Post as any).findByAuthor(authorId)
+}
+
+export async function searchPosts(query: string) {
+    return await Post.find({$text: {$search: query}})
 }

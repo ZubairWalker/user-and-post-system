@@ -5,6 +5,43 @@ const postRouter = express.Router();
 postRouter.get('/post', (req, res, next) => {
     res.json('welcome to Post');
 });
+// API => Search Posts
+postRouter.get('/api/posts/search', async (req, res, next) => {
+    try {
+        const query = req.query.q;
+        if (typeof query !== 'string' || !query.trim()) {
+            return res.status(400).json({ status: "error", message: 'The q query parameter is required' });
+        }
+        const post = await postService.searchPosts(query.trim());
+        return res.status(200).json({ data: post });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+// API = Getting Author ID
+postRouter.get('/api/posts/author/:authorId', async (req, res, next) => {
+    try {
+        const posts = await postService.getPostsByAuthor(req.params.authorId);
+        return res.status(200).json({ data: posts });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+// API => get single user
+postRouter.get('/api/posts/:id', async (req, res, next) => {
+    try {
+        const post = await postService.getPostbyId(req.params.id);
+        if (!post) {
+            return res.status(404).json({ status: "error", message: 'Post not found' });
+        }
+        return res.status(200).json({ data: post });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 // API => Getting posts 
 postRouter.get('/api/posts', async (req, res, next) => {
     try {
@@ -13,7 +50,7 @@ postRouter.get('/api/posts', async (req, res, next) => {
         const filters = {};
         if (req.query.isPublished !== undefined) {
             if (req.query.isPublished !== 'true' && req.query.isPublished !== 'false') {
-                return res.status(400).json({ message: 'isPublished must be true or false' });
+                return res.status(400).json({ status: "error", message: 'isPublished must be true or false' });
             }
             filters.isPublished = req.query.isPublished === 'true';
         }
@@ -22,8 +59,13 @@ postRouter.get('/api/posts', async (req, res, next) => {
             throw new Error('Not found');
         }
         return res.status(200).json({
-            post: post,
-            message: "Succesfully got posts"
+            data: post.data,
+            pagination: {
+                page: post.page,
+                limit: post.limit,
+                total: post.total,
+                totalPages: post.totalPages,
+            },
         });
     }
     catch (error) {
@@ -38,7 +80,7 @@ postRouter.post('/api/posts', async (req, res, next) => {
             throw new Error('Not Created');
         }
         return res.status(201).json({
-            post: post,
+            data: post,
             message: 'Post Successfully Created'
         });
     }
@@ -55,23 +97,7 @@ postRouter.get('/api/posts/trending', async (req, res, next) => {
         if (!post) {
             throw new Error('There is no trending Posts Yet');
         }
-        return res.status(200).json(post);
-    }
-    catch (error) {
-        next(error);
-    }
-});
-// API => get single user
-postRouter.get('/api/posts/:id', async (req, res, next) => {
-    try {
-        const post = await postService.getPostbyId(req.params.id);
-        if (!post) {
-            return res.status(404).json({ message: 'Post not found' });
-        }
-        return res.status(200).json({
-            post: post,
-            message: "Successful"
-        });
+        return res.status(200).json({ data: post });
     }
     catch (error) {
         next(error);
@@ -83,9 +109,9 @@ postRouter.patch('/api/posts/:id', async (req, res, next) => {
         const userId = (req.body.userId || req.headers['x-user-id']);
         const post = await postService.updatePost(req.params.id, userId, req.body);
         if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+            return res.status(404).json({ status: "error", message: 'Post not found' });
         }
-        return res.status(200).json(post);
+        return res.status(200).json({ data: post });
     }
     catch (error) {
         next(error);
@@ -98,12 +124,12 @@ postRouter.delete('/api/posts/:id', async (req, res, next) => {
         const post = await postService.deletePost(req.params.id, userId);
         if (!post) {
             return res.status(404).json({
-                message: 'Post Not found',
-                error: '404'
+                status: "error",
+                message: 'Post not found'
             });
         }
         return res.status(200).json({
-            post: post,
+            data: post,
             message: "Successfully Deleted"
         });
     }
@@ -118,11 +144,11 @@ postRouter.post('/api/posts/:id/comments', async (req, res, next) => {
         const post = await postService.addComment(req.params.id, userId, req.body.content);
         if (!post) {
             return res.status(404).json({
-                message: 'the comment not found',
-                error: '404'
+                status: "error",
+                message: 'Post not found'
             });
         }
-        return res.status(200).json(post);
+        return res.status(200).json({ data: post });
     }
     catch (error) {
         next(error);
@@ -135,11 +161,11 @@ postRouter.post('/api/posts/:id/like', async (req, res, next) => {
         const post = await postService.toggleLike(req.params.id, userId);
         if (!post) {
             return res.status(404).json({
-                message: 'post not found',
-                error: '404'
+                status: "error",
+                message: 'Post not found'
             });
         }
-        return res.status(200).json(post);
+        return res.status(200).json({ data: post });
     }
     catch (error) {
         next(error);

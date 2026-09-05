@@ -2,7 +2,8 @@ export declare function listUsers(page: any, limit: any): Promise<{
     data: any;
     total: any;
     page: number;
-    totalPage: number;
+    limit: number;
+    totalPages: number;
 }>;
 export declare function getUserById(id: string): Promise<(import("mongoose").Document<unknown, {}, {
     username: string;
@@ -252,4 +253,5 @@ export declare function searchUsers(query: string): Promise<(import("mongoose").
 }, "id"> & import("mongoose").HydratedDocumentOverrides<{
     id: string;
 }>)[]>;
+export declare function getFollowers(userId: string): Promise<import("mongoose").Types.ObjectId[] | null>;
 //# sourceMappingURL=userService.d.ts.map

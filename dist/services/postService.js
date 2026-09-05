@@ -11,7 +11,8 @@ export async function ListPosts(filters, page, limit) {
         data: posts,
         total,
         page: pageNum,
-        totalPage: Math.ceil(total / limitNum)
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
     };
 }
 export async function getPostbyId(id) {
@@ -74,11 +75,16 @@ export async function toggleLike(postId, userId) {
     const post = await Post.findById(postId);
     if (!post)
         return null;
-    const result = await post.toggleLike(userId);
-    return { post, result };
+    return await post.toggleLike(userId);
 }
 export async function getTrendingPosts(limit) {
     const post = await Post.findPopular(limit);
     return post;
+}
+export async function getPostsByAuthor(authorId) {
+    return await Post.findByAuthor(authorId);
+}
+export async function searchPosts(query) {
+    return await Post.find({ $text: { $search: query } });
 }
 //# sourceMappingURL=postService.js.map

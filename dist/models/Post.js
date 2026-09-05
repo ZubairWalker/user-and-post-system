@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 import { Schema } from "mongoose";
+function createExcerpt(content) {
+    const trimmed = content.trim();
+    return trimmed.length > 150 ? `${trimmed.slice(0, 150)}...` : trimmed;
+}
 export const commentSchema = new Schema({
     content: {
         type: String,
@@ -68,17 +72,7 @@ postSchema.virtual("readingTime").get(function () {
     const words = this.content.split(/\s+/).length;
     return Math.ceil(words / 200);
 });
-postSchema.pre("save", async function () {
-    if (!this.excerpt && this.content) {
-        this.excerpt = this.content.substring(0, 150) + "...";
-    }
-});
-postSchema.pre("save", async function () {
-    if (this.isPublished && !this.publishedAt) {
-        this.publishedAt = new Date();
-    }
-});
-// Instance Methods 
+// Instance Methods
 postSchema.methods.addComment = async function (authorId, content) {
     this.comments.push({ author: authorId, content });
     return await this.save();
@@ -97,10 +91,20 @@ postSchema.statics.findByAuthor = function (authorId) {
     return this.find({ author: authorId }).sort({ createdAt: -1 });
 };
 postSchema.statics.findPopular = function (limit = 10) {
-    return this.find({ isPublished: true })
-        .sort({ views: -1 })
-        .limit(limit);
+    return this.find({ isPublished: true }).sort({ views: -1 }).limit(limit);
 };
+// Added generateExcerpt instance method
+postSchema.methods.generateExcerpt = function () {
+    return createExcerpt(this.content);
+};
+postSchema.pre("save", function () {
+    if (this.isModified("content")) {
+        this.excerpt = createExcerpt(this.content);
+    }
+    if (this.isPublished && !this.publishedAt) {
+        this.publishedAt = new Date();
+    }
+});
 // text Index
 postSchema.index({ title: "text", content: "text" });
 // Compound Index

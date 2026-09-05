@@ -13,7 +13,8 @@ export async function listUsers(page, limit) {
         data: users,
         total,
         page: pageNum,
-        totalPage: Math.ceil(total / limitNum)
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
     };
 }
 export async function getUserById(id) {
@@ -76,5 +77,13 @@ export async function unFollowUser(userId, targetUserId) {
 }
 export async function searchUsers(query) {
     return User.find({ $text: { $search: query } });
+}
+// added get Followers
+export async function getFollowers(userId) {
+    const user = await User.findById(userId).populate('followers');
+    if (!user) {
+        return null;
+    }
+    return user.followers;
 }
 //# sourceMappingURL=userService.js.map

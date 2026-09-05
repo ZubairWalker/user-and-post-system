@@ -16,7 +16,8 @@ export async function listUsers(page: any, limit: any) {
         data: users,
         total,
         page: pageNum,
-        totalPage: Math.ceil(total / limitNum)
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
     }
 } 
 
@@ -82,4 +83,13 @@ export async function unFollowUser(userId: string, targetUserId: string) {
 
 export async function searchUsers(query: string) {
     return User.find({$text: {$search: query}})
+}
+
+// added get Followers
+export async function getFollowers(userId: string) {
+    const user = await User.findById(userId).populate('followers')
+    if(!user) {
+        return null
+    }
+    return user.followers
 }

@@ -12,20 +12,30 @@ app.get('/api/health', (req, res) => {
     const isDbConnected = mongoose.connection.readyState === 1;
     if (isDbConnected) {
         return res.status(200).json({
-            status: 'UP',
-            database: 'Connected',
-            uptime: `${Math.floor(process.uptime())}s`,
-            timestamp: new Date().toISOString()
+            data: {
+                status: 'UP',
+                database: 'Connected',
+                uptime: `${Math.floor(process.uptime())}s`,
+                timestamp: new Date().toISOString()
+            }
         });
     }
     return res.status(503).json({
-        status: "DOWN",
-        database: "Disconnected",
-        timestamp: new Date().toISOString()
+        data: {
+            status: "DOWN",
+            database: "Disconnected",
+            timestamp: new Date().toISOString()
+        }
     });
 });
 app.use(router);
 app.use(postRouter);
+app.use((req, res) => {
+    res.status(404).json({
+        status: "error",
+        message: `Route ${req.method} ${req.originalUrl} not found`,
+    });
+});
 app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 async function startServer() {

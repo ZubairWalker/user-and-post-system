@@ -46,6 +46,24 @@ user_and_posts_system/
 
 ## 📡 API Endpoints
 
+### Response Convention
+
+Successful responses use a `data` property. Collection endpoints use:
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 0,
+    "totalPages": 0
+  }
+}
+```
+
+Errors use `{ "status": "error", "message": "..." }`, including unmatched routes.
+
 ### Health Check
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -58,6 +76,7 @@ user_and_posts_system/
 | `POST` | `/api/users` | Create a new user |
 | `GET` | `/api/users/search` | Search users by name/username (`?q=query`) |
 | `GET` | `/api/users/:id` | Get user by ID (with populated followers/following) |
+| `GET` | `/api/users/:id/followers` | List a user's followers |
 | `PATCH` | `/api/users/:id` | Update user profile details |
 | `POST` | `/api/users/:id/follow` | Follow a user |
 | `POST` | `/api/users/:id/unfollow` | Unfollow a user |
@@ -66,6 +85,8 @@ user_and_posts_system/
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/posts` | List paginated posts with filters (`?page=1&limit=10`) |
+| `GET` | `/api/posts/search` | Search posts by title/content (`?q=query`) |
+| `GET` | `/api/posts/author/:authorId` | List posts by author |
 | `POST` | `/api/posts` | Create a new post |
 | `GET` | `/api/posts/trending` | Get trending posts sorted by views (`?limit=10`) |
 | `GET` | `/api/posts/:id` | Get post by ID (increments views count) |

@@ -11,7 +11,15 @@ router.get('/', (req: Request, res: Response, next: NextFunction) => {
 router.get('/api/users', async(req: Request, res: Response, next: NextFunction) => {
     try {
         const users = await userService.listUsers(req.query.page, req.query.limit)
-        return res.json(users)
+        return res.json({
+            data: users.data,
+            pagination: {
+                page: users.page,
+                limit: users.limit,
+                total: users.total,
+                totalPages: users.totalPages,
+            },
+        })
     } catch (error) {
         next(error)
     }
@@ -20,12 +28,28 @@ router.get('/api/users', async(req: Request, res: Response, next: NextFunction) 
 // Create User API
 router.post('/api/users', async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const users = await userService.createUser(req.body)
+        const user = await userService.createUser(req.body)
         res.status(201).json({
-            users,
+            data: user,
             message: "Success"
         })
     } catch(error) {
+        next(error)
+    }
+})
+
+// getFollowers API
+router.get('/api/users/:id/followers', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = await userService.getFollowers(req.params.id as string)
+        if(!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found"
+            })
+        }
+        return res.status(200).json({data: user})
+    } catch (error) {
         next(error)
     }
 })
@@ -35,10 +59,10 @@ router.get('/api/users/search', async(req: Request, res: Response, next: NextFun
     try {
         const query = req.query.q
         if (typeof query !== 'string' || !query.trim()) {
-            return res.status(400).json({message: 'The q query parameter is required'})
+            return res.status(400).json({status: "error", message: 'The q query parameter is required'})
         }
         const users = await userService.searchUsers(query.trim())
-        return res.json(users)
+        return res.json({data: users})
     } catch (error) {
         next(error)
     }
@@ -47,9 +71,9 @@ router.get('/api/users/search', async(req: Request, res: Response, next: NextFun
 // Get User By Id API
 router.get('/api/users/:id', async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const users = await userService.getUserById(req.params.id as string)
-        if (!users) return res.status(404).json({message: 'User not found'})
-        return res.json(users)
+        const user = await userService.getUserById(req.params.id as string)
+        if (!user) return res.status(404).json({status: "error", message: 'User not found'})
+        return res.json({data: user})
     } catch(error) {
         next(error)
     }
@@ -58,10 +82,10 @@ router.get('/api/users/:id', async(req: Request, res: Response, next: NextFuncti
 // patch User Id API
 router.patch('/api/users/:id', async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const users = await userService.updateUser(req.params.id as string, req.body)
-        if (!users) return res.status(404).json({message: 'User not found'})
+        const user = await userService.updateUser(req.params.id as string, req.body)
+        if (!user) return res.status(404).json({status: "error", message: 'User not found'})
         return res.status(200).json({
-            user: users,
+            data: user,
             message: "Successfully Updated"
         })
     } catch(error) {
@@ -75,7 +99,7 @@ router.post('/api/users/:id/follow', async(req: Request, res: Response, next: Ne
         const userId = (req.body.userId || req.headers['x-user-id']) as string
         const users = await userService.followUser(userId, req.params.id as string);
         return res.status(200).json({
-            users,
+            data: users,
             message: "Followed Successfully ✨"
         })
     } catch(error) {
@@ -89,7 +113,7 @@ router.post('/api/users/:id/unfollow', async(req: Request, res: Response, next: 
         const userId = (req.body.userId || req.headers['x-user-id']) as string
         const users = await userService.unFollowUser(userId, req.params.id as string)
         return res.status(200).json({
-            users,
+            data: users,
             message: "unfollowed 😥"
         })
     } catch(error) {
